@@ -1,7 +1,7 @@
 {extern_c}
 {Supported_Platforms := Raspbian, LinuxX86}
 
-FUNCTION CreateThread : LINT
+FUNCTION CreateThread : LINT /* thread_id */
 	VAR_INPUT
 		path : STRING[511]; /* file system path (absolute/relative) */
 		mode: STRING[2]; /* 'r', 'r+', 'w', 'w+', 'a', 'a+' */
@@ -11,12 +11,12 @@ END_FUNCTION
 
 FUNCTION JoinThread
 	VAR_INPUT
-		thread_id : LINT;
+		thread_id : LINT; /* as obtained from CreateThread() */
 	END_VAR
 END_FUNCTION
 
 FUNCTION AccessData
 	VAR_OUTPUT
-		buffer : STRING[1023];
+		buffer : STRING[1023]; /* data read from file passed to CreateThread (path parameter) */
 	END_VAR
 END_FUNCTION
