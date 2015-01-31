@@ -39,7 +39,7 @@ struct _thread_context
 #define THREAD_CONTEXT_INITIALIZER \
 	{ \
 		0,                                      /* shutdown */ \
-		100000000L,                             /* period */ \
+		THREAD_CYCLE_TIME,                      /* period */ \
 		{ \
 			{ '\0' },                           /* path */ \
 			{ '\0' },                           /* mode */ \
