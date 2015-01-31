@@ -1,0 +1,8 @@
+{extern_c}
+{Supported_Platforms := Raspbian, LinuxX86}
+
+FUNCTION Printf
+	VAR_INPUT
+		msg : STRING[255];
+	END_VAR
+END_FUNCTION

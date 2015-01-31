@@ -1,0 +1,8 @@
+eclipse.preferences.version=1
+ptk.properties.include.path.LinuxX86=../../../src
+ptk.properties.include.path.Raspbian=../../../src
+ptk.properties.library.name.LinuxX86=pthread
+ptk.properties.library.name.Raspbian=pthread
+ptk.properties.library.path.LinuxX86=
+ptk.properties.library.path.Raspbian=
+ptk.properties.selected.platform=Raspbian

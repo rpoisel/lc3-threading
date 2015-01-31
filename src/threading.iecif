@@ -1,0 +1,22 @@
+{extern_c}
+{Supported_Platforms := Raspbian, LinuxX86}
+
+FUNCTION CreateThread : LINT
+	VAR_INPUT
+		path : STRING[511]; /* file system path (absolute/relative) */
+		mode: STRING[2]; /* 'r', 'r+', 'w', 'w+', 'a', 'a+' */
+		period : UDINT;  /* read period in nano seconds */
+	END_VAR
+END_FUNCTION
+
+FUNCTION JoinThread
+	VAR_INPUT
+		thread_id : LINT;
+	END_VAR
+END_FUNCTION
+
+FUNCTION AccessData
+	VAR_OUTPUT
+		buffer : STRING[1023];
+	END_VAR
+END_FUNCTION

@@ -1,0 +1,23 @@
+/*
+ * This is a logi.CAD 3 program template
+ */
+PROGRAM Program1
+	VAR
+		init : BOOL := FALSE;
+		term : BOOL := FALSE;
+		thread_id : LINT;
+		meminfo : STRING[1023];
+	END_VAR
+	
+	RTSCycleInfo(Init => init, Term => term);
+	
+	IF init THEN
+		thread_id := CreateThread(path := '/proc/meminfo', mode := 'r', period := 100000000);
+	END_IF;
+	
+	AccessData(buffer => meminfo);
+	
+	IF term THEN
+		JoinThread(thread_id := thread_id);
+	END_IF;
+END_PROGRAM

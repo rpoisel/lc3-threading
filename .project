@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>lc3-threading</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.xtext.ui.shared.xtextBuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.xtext.ui.shared.xtextNature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>IEC61131-3</name>
+			<type>2</type>
+			<locationURI>WORKSPACE_LOC/.metadata/.plugins/com.logicals.library.iec61131/iecst</locationURI>
+		</link>
+		<link>
+			<name>Raspberry Pi IO</name>
+			<type>2</type>
+			<locationURI>WORKSPACE_LOC/.metadata/.plugins/com.logicals.library.raspberrypi/iecst</locationURI>
+		</link>
+		<link>
+			<name>logi.library</name>
+			<type>2</type>
+			<locationURI>WORKSPACE_LOC/.metadata/.plugins/com.logicals.library.logilibrary/iecst</locationURI>
+		</link>
+	</linkedResources>
+</projectDescription>
