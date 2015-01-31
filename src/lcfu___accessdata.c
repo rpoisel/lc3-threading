@@ -14,7 +14,8 @@ void  lcfu___ACCESSDATA(LC_TD_Function_ACCESSDATA* LC_this, struct _lcoplck_epdb
 	strncpy(LC_this->LC_VD_BUFFER, get_read_buffer(), BUF_SIZE);
 	thread_mutex_unlock();
 
-	/* modify LC_this->LC_VD_BUFFER to your convenience, in case it is necessary */
+	/* modify LC_this->LC_VD_BUFFER to your convenience (e. g. parse numeric values
+	 * or strip unnecessary data out of it), in case it is necessary */
 }
 
 #endif
