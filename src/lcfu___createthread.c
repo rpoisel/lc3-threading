@@ -1,6 +1,7 @@
 #ifndef LC_PROT_LCFU___CREATETHREAD__C
 #define LC_PROT_LCFU___CREATETHREAD__C
 
+#define _POSIX_C_SOURCE 199309L
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,8 +13,11 @@
 
 #define THREAD_CYCLE_TIME 100000000L /* nanoseconds */
 
+
 typedef struct _thread_data thread_data;
+#if 0
 typedef struct _thread_context thread_context;
+#endif
 
 static void* runner(void* params);
 static void worker(thread_data* data);
@@ -64,6 +68,7 @@ void  lcfu___CREATETHREAD(LC_TD_Function_CREATETHREAD* LC_this, LcCgChar LC_VD_P
 	strncpy(_thread_context.data.path, LC_VD_PATH, PATH_SIZE);
 	strncpy(_thread_context.data.mode, LC_VD_MODE, MODE_SIZE);
 	pthread_create(&thread_id, NULL, runner, &_thread_context);
+	LC_this->LC_VD_CREATETHREAD = (LC_TD_LINT)thread_id;
 }
 
 void thread_set_shutdown_flag(void)
@@ -94,7 +99,8 @@ int get_read_buffer_len(void)
 static void* runner(void* params)
 {
 	thread_context* context = (thread_context*)params;
-	struct timespec sleep_period = { 0, context->period };
+	struct timespec sleep_period = { 0, 0 };
+	sleep_period.tv_nsec = context->period;
 
 	while(context->shutdown != THREAD_SHUTDOWN)
 	{
