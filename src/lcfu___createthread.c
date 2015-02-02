@@ -13,11 +13,7 @@
 
 #define THREAD_CYCLE_TIME 100000000L /* nanoseconds */
 
-
 typedef struct _thread_data thread_data;
-#if 0
-typedef struct _thread_context thread_context;
-#endif
 
 static void* runner(void* params);
 static void worker(thread_data* data);
