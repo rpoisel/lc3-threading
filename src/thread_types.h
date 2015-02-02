@@ -11,15 +11,19 @@
 #define BUF_SIZE 1024
 #define PATH_SIZE 512
 #define MODE_SIZE 3
+#define NUM_MAX_THREADS 32
 
-/* forward declarations */
+/* typedefs and forward declarations */
+typedef int16_t thread_id_t;
 typedef struct _thread_context thread_context;
 
 /* prototypes */
-void thread_mutex_lock(void);
-void thread_mutex_unlock(void);
-void thread_set_shutdown_flag(void);
-char* get_read_buffer(void);
-int get_read_buffer_len(void);
+void thread_mutex_lock(thread_id_t thread_id);
+void thread_mutex_unlock(thread_id_t thread_id);
+void thread_set_shutdown_flag(thread_id_t thread_id);
+char* get_read_buffer(thread_id_t thread_id);
+int get_read_buffer_len(thread_id_t thread_id);
+uint8_t is_valid_thread_id(thread_id_t thread_id);
+void thread_join(thread_id_t thread_id);
 
 #endif /* THREAD_TYPES_H */

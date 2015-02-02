@@ -21,6 +21,7 @@ static void shutdown_worker(thread_data* data);
 
 struct _thread_data
 {
+	thread_id_t thread_id;
 	char path[PATH_SIZE];
 	char mode[MODE_SIZE];
 	FILE* fh;
@@ -31,65 +32,93 @@ struct _thread_data
 
 struct _thread_context
 {
+	pthread_t pthread_id;
+	uint8_t used;
 	uint8_t shutdown;
 	uint32_t period;
 	thread_data data;
 };
 
-#define THREAD_CONTEXT_INITIALIZER \
-	{ \
-		0,                                      /* shutdown */ \
-		THREAD_CYCLE_TIME,                      /* period */ \
-		{ \
-			{ '\0' },                           /* path */ \
-			{ '\0' },                           /* mode */ \
-			NULL,                               /* fh */ \
-			{ { '\0' }, { '\0' } },             /* buffers */ \
-			0,                                  /* work_buf_idx */ \
-			PTHREAD_MUTEX_INITIALIZER           /* mutex */ \
-		} \
-	}
-
-static thread_context _thread_context = THREAD_CONTEXT_INITIALIZER;
+static thread_context _thread_contexts[NUM_MAX_THREADS];
+static uint8_t _initialized = 0;
 
 /*                            Functions                        */
 void  lcfu___CREATETHREAD(LC_TD_Function_CREATETHREAD* LC_this, LcCgChar LC_VD_PATH[512], LcCgChar LC_VD_MODE[3], LC_TD_UDINT LC_VD_PERIOD, struct _lcoplck_epdb_1_impl* pEPDB)
 {
-	pthread_t thread_id = 0;
-	_thread_context.shutdown = THREAD_RUNNING;
+	thread_id_t thread_id = 0;
+	if (!_initialized)
+	{
+		for (thread_id = 0; thread_id < NUM_MAX_THREADS; thread_id++)
+		{
+			memset(&_thread_contexts[thread_id], 0, sizeof(_thread_contexts[0]));
+			pthread_mutex_init(&(_thread_contexts[thread_id].data.mutex), NULL);
+		}
+		_initialized = 1;
+	}
+
+	for (thread_id = 0; thread_id < NUM_MAX_THREADS; thread_id++)
+	{
+		if (!_thread_contexts[thread_id].used)
+		{
+			break;
+		}
+	}
+	if (thread_id == NUM_MAX_THREADS)
+	{
+		LC_this->LC_VD_CREATETHREAD = (LC_TD_DINT)-1;
+		LC_this->LC_VD_ENO = LC_EL_false;
+		return;
+	}
+
+	LC_this->LC_VD_CREATETHREAD = thread_id;
+	_thread_contexts[thread_id].data.thread_id = thread_id;
+	_thread_contexts[thread_id].used = 1;
+	_thread_contexts[thread_id].shutdown = THREAD_RUNNING;
 	if (LC_VD_PERIOD > 0)
 	{
-		_thread_context.period = LC_VD_PERIOD;
+		_thread_contexts[thread_id].period = LC_VD_PERIOD;
 	}
-	strncpy(_thread_context.data.path, LC_VD_PATH, PATH_SIZE);
-	strncpy(_thread_context.data.mode, LC_VD_MODE, MODE_SIZE);
-	pthread_create(&thread_id, NULL, runner, &_thread_context);
-	LC_this->LC_VD_CREATETHREAD = (LC_TD_LINT)thread_id;
+	strncpy(_thread_contexts[thread_id].data.path, LC_VD_PATH, PATH_SIZE);
+	strncpy(_thread_contexts[thread_id].data.mode, LC_VD_MODE, MODE_SIZE);
+	pthread_create(&(_thread_contexts[thread_id].pthread_id), NULL, runner,
+			_thread_contexts + thread_id);
 }
 
-void thread_set_shutdown_flag(void)
+void thread_set_shutdown_flag(thread_id_t thread_id)
 {
-	_thread_context.shutdown = THREAD_SHUTDOWN;
+	_thread_contexts[thread_id].shutdown = THREAD_SHUTDOWN;
 }
 
-void thread_mutex_lock(void)
+void thread_mutex_lock(thread_id_t thread_id)
 {
-	pthread_mutex_lock(&(_thread_context.data.mutex));
+	pthread_mutex_lock(&(_thread_contexts[thread_id].data.mutex));
 }
 
-void thread_mutex_unlock(void)
+void thread_mutex_unlock(thread_id_t thread_id)
 {
-	pthread_mutex_unlock(&(_thread_context.data.mutex));
+	pthread_mutex_unlock(&(_thread_contexts[thread_id].data.mutex));
 }
 
-char* get_read_buffer(void)
+char* get_read_buffer(thread_id_t thread_id)
 {
-	return _thread_context.data.buffers[!_thread_context.data.work_buf_idx];
+	return _thread_contexts[thread_id].data.buffers[!_thread_contexts[thread_id].data.work_buf_idx];
 }
 
-int get_read_buffer_len(void)
+int get_read_buffer_len(thread_id_t thread_id)
 {
+	(void)thread_id;
 	return BUF_SIZE;
+}
+
+uint8_t is_valid_thread_id(thread_id_t thread_id)
+{
+	return thread_id >= 0 && thread_id < NUM_MAX_THREADS;
+}
+
+void thread_join(thread_id_t thread_id)
+{
+	pthread_join(_thread_contexts[thread_id].pthread_id, NULL);
+	_thread_contexts[thread_id].used = 0;
 }
 
 static void* runner(void* params)
@@ -140,9 +169,9 @@ static void worker(thread_data* data)
 	}
 
 	/* and then flip the buffers */
-	thread_mutex_lock();
+	thread_mutex_lock(data->thread_id);
 	data->work_buf_idx = !data->work_buf_idx;
-	thread_mutex_unlock();
+	thread_mutex_unlock(data->thread_id);
 }
 
 static void shutdown_worker(thread_data* data)

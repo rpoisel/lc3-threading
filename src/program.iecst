@@ -5,19 +5,24 @@ PROGRAM Program1
 	VAR
 		init : BOOL := FALSE;
 		term : BOOL := FALSE;
-		thread_id : LINT;
+		thread_id_meminfo : DINT;
+		thread_id_mounts : DINT;
 		meminfo : STRING[1023];
+		mounts : STRING[1023];
 	END_VAR
 	
 	RTSCycleInfo(Init => init, Term => term);
 	
 	IF init THEN
-		thread_id := CreateThread(path := '/proc/meminfo', mode := 'r', period := 100000000);
+		thread_id_meminfo := CreateThread(path := '/proc/meminfo', mode := 'r', period := 100000000);
+		thread_id_mounts := CreateThread(path := '/proc/mounts', mode := 'r', period := 100000000);
 	END_IF;
 	
-	AccessData(buffer => meminfo);
+	AccessData(thread_id := thread_id_meminfo, buffer => meminfo);
+	AccessData(thread_id := thread_id_mounts, buffer => mounts);
 	
 	IF term THEN
-		JoinThread(thread_id := thread_id);
+		JoinThread(thread_id := thread_id_meminfo);
+		JoinThread(thread_id := thread_id_mounts);
 	END_IF;
 END_PROGRAM
