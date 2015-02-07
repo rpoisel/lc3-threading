@@ -7,6 +7,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
+#include <unistd.h>
 #include <lcfu___createthread.h>
 
 #include <thread_types.h>
@@ -25,8 +26,9 @@ struct _thread_data
 	char path[PATH_SIZE];
 	char mode[MODE_SIZE];
 	FILE* fh;
-	char buffers[2][BUF_SIZE];
-	uint8_t work_buf_idx;
+	char buffers[2][BUF_SIZE]; /* double buffer */
+	int16_t buf_len[2]; /* number of used bytes per buffer */
+	uint8_t work_buf_idx; /* idx of current buffer to work on */
 	pthread_mutex_t mutex;
 };
 
@@ -80,6 +82,8 @@ void  lcfu___CREATETHREAD(LC_TD_Function_CREATETHREAD* LC_this, LcCgChar LC_VD_P
 	}
 	strncpy(_thread_contexts[thread_id].data.path, LC_VD_PATH, PATH_SIZE);
 	strncpy(_thread_contexts[thread_id].data.mode, LC_VD_MODE, MODE_SIZE);
+	_thread_contexts[thread_id].data.buf_len[0] = THREAD_DATA_LEN_INVALID;
+	_thread_contexts[thread_id].data.buf_len[1] = THREAD_DATA_LEN_INVALID;
 	pthread_create(&(_thread_contexts[thread_id].pthread_id), NULL, runner,
 			_thread_contexts + thread_id);
 }
@@ -104,15 +108,29 @@ char* get_read_buffer(thread_id_t thread_id)
 	return _thread_contexts[thread_id].data.buffers[!_thread_contexts[thread_id].data.work_buf_idx];
 }
 
-int get_read_buffer_len(thread_id_t thread_id)
+int16_t get_read_buffer_size(thread_id_t thread_id)
 {
 	(void)thread_id;
 	return BUF_SIZE;
 }
 
+int16_t get_read_buffer_len(thread_id_t thread_id)
+{
+	return _thread_contexts[thread_id].data.buf_len[!_thread_contexts[thread_id].data.work_buf_idx];
+}
+
 uint8_t is_valid_thread_id(thread_id_t thread_id)
 {
 	return thread_id >= 0 && thread_id < NUM_MAX_THREADS;
+}
+
+uint8_t is_thread_data_valid(thread_id_t thread_id)
+{
+	if (_thread_contexts[thread_id].data.buf_len[!_thread_contexts[thread_id].data.work_buf_idx] == THREAD_DATA_LEN_INVALID)
+	{
+		return THREAD_DATA_INVALID;
+	}
+	return THREAD_DATA_VALID;
 }
 
 void thread_join(thread_id_t thread_id)
@@ -141,37 +159,43 @@ static void worker(thread_data* data)
 {
 	size_t num_read = 0;
 
-	/* file has not been opened yet */
+	if (access(data->path, F_OK) == -1)
+	{
+		/* file does not exist anymore */
+		thread_mutex_lock(data->thread_id);
+		data->fh = NULL;
+		data->buf_len[!data->work_buf_idx] = THREAD_DATA_LEN_INVALID;
+		thread_mutex_unlock(data->thread_id);
+		return;
+	}
+
 	if (!data->fh)
 	{
+		/* file exists but has not been opened yet */
 		data->fh = fopen(data->path, data->mode);
 	}
 
 	if (!data->fh)
 	{
 		/* file could not be opened */
+		thread_mutex_lock(data->thread_id);
+		data->buf_len[data->work_buf_idx] = THREAD_DATA_LEN_INVALID;
+		thread_mutex_unlock(data->thread_id);
 		return;
 	}
 	fseek(data->fh, 0, SEEK_SET);
-	num_read = fread(data->buffers[data->work_buf_idx], 1, BUF_SIZE, data->fh); /* may block */
+	data->buf_len[data->work_buf_idx] = fread(data->buffers[data->work_buf_idx], 1, BUF_SIZE, data->fh); /* may block */
 
 	/* after reading the file's contents into the work buffer,
 	 * do some clean up of the work buffer's contents */
 
-	if (num_read <= 0)
+	if (data->buf_len[data->work_buf_idx] >= 0)
 	{
-		return;
+		/* successfully read file contents, swap buffers */
+		thread_mutex_lock(data->thread_id);
+		data->work_buf_idx = !data->work_buf_idx;
+		thread_mutex_unlock(data->thread_id);
 	}
-
-	if (num_read < BUF_SIZE)
-	{
-		data->buffers[data->work_buf_idx][num_read] = '\0';
-	}
-
-	/* and then flip the buffers */
-	thread_mutex_lock(data->thread_id);
-	data->work_buf_idx = !data->work_buf_idx;
-	thread_mutex_unlock(data->thread_id);
 }
 
 static void shutdown_worker(thread_data* data)

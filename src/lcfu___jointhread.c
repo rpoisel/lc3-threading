@@ -17,7 +17,6 @@ void  lcfu___JOINTHREAD(LC_TD_Function_JOINTHREAD* LC_this, LC_TD_DINT LC_VD_THR
 	}
 	thread_set_shutdown_flag(LC_VD_THREAD_ID);
 	thread_join(LC_VD_THREAD_ID);
-	printf("Quitting thread with id %d\n", LC_VD_THREAD_ID);
 }
 
 #endif
